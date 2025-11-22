@@ -58,7 +58,5 @@ func (h *Handler) FetchAndSaveAllTransactions(job queue.Job) error {
 		h.CommandModeSignal <- struct{}{}
 	}
 	h.Worker.Release()
-
-	// releasing for the last acquire
 	return nil
 }

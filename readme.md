@@ -32,6 +32,7 @@ This project is a Go-based application designed to fetch and process transaction
 2. Install dependencies:
    ```bash
    go mod tidy
+   go get
    ```
 
 3. Run the application:

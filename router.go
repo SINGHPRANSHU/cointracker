@@ -15,6 +15,6 @@ func router() *mux.Router {
 	go h.StartWorkerPool()
 	mux := mux.NewRouter()
 	mux.HandleFunc("/{address}/history", h.GetHistoryForAddress).Methods("GET")
-	mux.HandleFunc("/{address}/history", h.GetHistoryForAddress).Methods("POST")
+	mux.HandleFunc("/{address}/history", h.AddAddressInQueue).Methods("POST")
 	return mux
 }

@@ -23,11 +23,11 @@ func GetCSVProcessor(address string, txnType model.TransferType) (*CSVProcessor,
 	defer mutex.Unlock()
 	filename := GetFileName(address, txnType)
 	_, exist := CSVProcessorMap[filename]
-	file, err := os.Create(filename)
-	if err != nil {
-		return nil, err
-	}
 	if !exist {
+		file, err := os.Create(filename)
+		if err != nil {
+			return nil, err
+		}
 		CSVProcessorMap[filename] = &CSVProcessor{
 			FileName: filename,
 			mutex:    &sync.Mutex{},
@@ -47,10 +47,19 @@ func (csvProcessor *CSVProcessor) WriteCSV(records []model.TransactionRecord) er
 	writer := csv.NewWriter(csvProcessor.file)
 	defer writer.Flush()
 
+	stat, err := csvProcessor.file.Stat()
+	if err != nil {
+		return err
+	}
+
+	shouldWriteHeader := stat.Size() == 0
+
 	// CSV Header
 	header := []string{"TxHash", "Timestamp", "From", "To", "TxType", "Contract", "Symbol", "TokenID", "Amount", "GasFeeETH"}
-	if err := writer.Write(header); err != nil {
-		return err
+	if shouldWriteHeader {
+		if err := writer.Write(header); err != nil {
+			return err
+		}
 	}
 
 	for _, r := range records {

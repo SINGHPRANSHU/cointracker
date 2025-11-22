@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	neturl "net/url"
+
 	"github.com/singhpranshu/cointracker/dto"
 	"github.com/singhpranshu/cointracker/model"
 )
@@ -27,20 +29,31 @@ func NewBlockScountClient(baseUrl string, externalTxnEndpoint string, InternalTx
 }
 
 // FetchInBatches fetches paginated results from Blockscout API in batches
+var m NewMap = make(map[string]string)
+
 func Fetch[T any](baseURL, address string, endpoint string, page string) (res []T, nextpage string, err error) {
+	// fmt.Println("Fetching page:", page)
+
 	var allItems []T
 	url := fmt.Sprintf("%s/addresses/%s/%s?", baseURL, address, endpoint)
 	url += page
+	// Check for duplicate requests
+	// use this in dev as it may reduce performance and parallelism due to mutex
+	// if val, ok := m.Get(url); ok {
+	// 	panic("Duplicate url request detected: " + val + " and " + page)
+	// }
+	// m.Put(url, url)
 
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, "", err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return []T{}, "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// fmt.Println("Error response status:", string(body))
+		return []T{}, "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
 
 	var apiResp dto.BlockscoutAPIResponse[T]
 	if err := json.Unmarshal(body, &apiResp); err != nil {
@@ -54,11 +67,23 @@ func Fetch[T any](baseURL, address string, endpoint string, page string) (res []
 		return allItems, "", nil
 	}
 
-	url = fmt.Sprintf("%s/addresses/%s/%s?", baseURL, address, endpoint)
+	queryParmas := neturl.Values{}
 	for k, v := range apiResp.NextPageParams {
-		nextpage = fmt.Sprintf("%s=%v", k, v)
-		url += fmt.Sprintf("%s", nextpage)
+		switch val := v.(type) {
+		case int:
+			queryParmas.Add(k, fmt.Sprintf("%d", val))
+		case string:
+			queryParmas.Add(k, val)
+		case float64:
+			queryParmas.Add(k, fmt.Sprintf("%.0f", val))
+		default:
+			fmt.Println("Unknown type for next page param:", k, v, val)
+			panic("unknown type in next page params")
+		}
 	}
+
+	nextpage = queryParmas.Encode()
+	// fmt.Println("Next page params:", nextpage)
 
 	return allItems, nextpage, nil
 }
@@ -75,7 +100,7 @@ func (blockScountClient BlockScountClient) FetchExternalTransfer(address string,
 	return records, nextPage, nil
 }
 func (blockScountClient BlockScountClient) FetchtokenTransfer(address string, page string) (tx []model.TransactionRecord, nextPage string, err error) {
-	txn, nextPage, err := Fetch[dto.TokenTransfer](blockScountClient.BaseURL, address, blockScountClient.ExternalTxnEndpoint, page)
+	txn, nextPage, err := Fetch[dto.TokenTransfer](blockScountClient.BaseURL, address, blockScountClient.TokenTransferEndpoint, page)
 	if err != nil {
 		return nil, "", err
 	}

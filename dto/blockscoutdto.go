@@ -7,6 +7,28 @@ type BlockscoutAPIResponse[T any] struct {
 	NextPageParams map[string]interface{} `json:"next_page_params"`
 }
 
+type NextPageParams struct {
+	Index            uint64 `json:"index"`
+	Value            string `json:"value"`
+	Hash             string `json:"hash"`
+	InsertedAt       string `json:"inserted_at"`
+	BlockNumber      uint64 `json:"block_number"`
+	Fee              string `json:"fee"`
+	ItemsCount       uint64 `json:"items_count"`
+	TransactionIndex uint64 `json:"transaction_index"`
+}
+
+// "next_page_params": {
+//     "index": 55,
+//     "value": "0",
+//     "hash": "0xbcb1d9f4c85a708b0eb37b50dd760048b185f20c806c3550c7ca101e09afe490",
+//     "inserted_at": "2025-06-14T22:51:15.376529Z",
+//     "block_number": 22705890,
+//     "fee": "62653428273671",
+//     "items_count": 50
+//"transaction_index": 0
+//   }
+
 // Blockscout ETH transaction
 type Transaction struct {
 	Hash      string `json:"hash"`
